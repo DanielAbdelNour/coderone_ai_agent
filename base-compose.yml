@@ -15,6 +15,13 @@ services:
         volumes:
             - ./python3:/app
 
+    python3-agent-dev2:
+        build:
+            context: python3
+            dockerfile: Dockerfile.dev
+        volumes:
+            - ./python3:/app
+
     python3-fwd:
         build:
             context: python3

@@ -76,3 +76,44 @@ def position_is_passable(board, position, enemies):
             position_is_passage(board, position)
         ]), not position_is_enemy(board, position, enemies)
     ])
+
+def position_on_board(board, position):
+    '''Determines if a positions is on the board'''
+    x, y = position
+    return all([len(board) > x, len(board[0]) > y, x >= 0, y >= 0])
+
+
+def get_direction(position, next_position):
+    """Get the direction such that position --> next_position.
+
+    We assume that they are adjacent.
+    """
+    x, y = position
+    next_x, next_y = next_position
+    if x == next_x:
+        if y < next_y:
+            return constants.Action.Right
+        else:
+            return constants.Action.Left
+    elif y == next_y:
+        if x < next_x:
+            return constants.Action.Down
+        else:
+            return constants.Action.Up
+    raise constants.InvalidAction("We did not receive a valid position transition.")
+
+
+def get_next_position(position, direction):
+    '''Returns the next position coordinates'''
+    x, y = position
+    if direction == constants.Action.Right:
+        return (x, y + 1)
+    elif direction == constants.Action.Left:
+        return (x, y - 1)
+    elif direction == constants.Action.Down:
+        return (x + 1, y)
+    elif direction == constants.Action.Up:
+        return (x - 1, y)
+    elif direction == constants.Action.Stop:
+        return (x, y)
+    raise constants.InvalidAction("We did not receive a valid direction.")

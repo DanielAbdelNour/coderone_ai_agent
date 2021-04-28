@@ -7,8 +7,8 @@ ent_type_dict = {
     'x': 3,
     'bp': 4,
     'm':5,
-    'o':5,
-    'w':6, 
+    'o':6,
+    'w':7, 
 }
 
 class Item(Enum):
@@ -22,3 +22,17 @@ class Item(Enum):
     Wooden_Block = 7
     Agent0 = 10
     Agent1 = 11
+
+
+class Action(Enum):
+    Right = 'right'
+    Left = 'left'
+    Up = 'up'
+    Down = 'down'
+    Stop = None
+    Bomb = 'bomb'
+    Detonate = 'detonate'
+
+class InvalidAction(Exception):
+    '''Invalid Actions Exception'''
+    pass
