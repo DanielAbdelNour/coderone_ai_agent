@@ -63,7 +63,7 @@ class Agent():
         blast_strength = int(my_agent_data['blast_diameter'])
         items, dist, prev = self._djikstra(board, my_position, bombs, enemies, depth=10)
 
-        asd
+        asds3
 
         return None
 
