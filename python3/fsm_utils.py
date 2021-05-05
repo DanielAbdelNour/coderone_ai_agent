@@ -1,3 +1,4 @@
+from os import sched_yield
 import numpy as np
 from copy import deepcopy
 from numba import njit, typeof, typed, types
@@ -43,6 +44,7 @@ def generate_board(game_state):
     bomb_dia_board = np.zeros_like(entity_board)
     fire_board = np.zeros_like(entity_board) -1
     hp_board = np.zeros_like(entity_board)
+    agent_hp_board = np.zeros_like(entity_board)
 
     tick = game_state['tick']
 
@@ -75,12 +77,16 @@ def generate_board(game_state):
     entity_board[(len(entity_board)-1) - agentA_y, agentA_x] = 10
     entity_board[(len(entity_board)-1) - agentB_y, agentB_x] = 11
 
+    agent_hp_board[(len(entity_board)-1) - agentA_y, agentA_x] = agents['0']['hp']
+    agent_hp_board[(len(entity_board)-1) - agentB_y, agentB_x] = agents['1']['hp']
+
     return {
         'entity_board': entity_board.astype(np.int32),
         'hp_board': hp_board.astype(np.int32),
         'bomb_dia_board': bomb_dia_board.astype(np.int32),
         'bomb_exp_board': bomb_exp_board.astype(np.int32),
-        'fire_board': fire_board.astype(np.int32)
+        'fire_board': fire_board.astype(np.int32),
+        'agent_hp_board': agent_hp_board.astype(np.int32)
     }
 
 
@@ -96,13 +102,15 @@ def forward(game_state_boards, action, agent_number):
     bomb_dia_board = game_state_boards[2].copy()
     bomb_exp_board = game_state_boards[3].copy()
     fire_board = game_state_boards[4].copy()
+    agent_hp_board = game_state_boards[5].copy()
 
     agent_ent = 10 if agent_number == 0 else 11 #agent_number_ent_dict[agent_number]
+
+    board_shape = entity_board.shape
 
     # apply forward for a movement
     if action in ['left', 'right', 'up', 'down']: #move_actions:
         cy,cx = np.argwhere(entity_board==agent_ent)[0] # current x, y of target agent
-        #move_dir = move_dir_dict[action]
 
         if action == 'left':
             move_dir = (0,-1)
@@ -116,7 +124,7 @@ def forward(game_state_boards, action, agent_number):
         ny, nx = cy+move_dir[0], cx+move_dir[1]  # proposed new positions of target agent
 
         # illegal move out of bounds
-        if ny > entity_board.shape[0]-1 or nx > entity_board.shape[1]-1 or ny < 0 or nx < 0:
+        if ny > board_shape[0]-1 or nx > board_shape[1]-1 or ny < 0 or nx < 0:
             return entity_board
 
         ent_at_position = entity_board[ny, nx]
@@ -140,30 +148,39 @@ def forward(game_state_boards, action, agent_number):
         # decrement health all other locations
         fire_board[xby, xbx] = 10
 
-        for ss in [[xby-step, xbx], [xby+step, xbx], [xby, xbx-step], [xby, xbx+step]]:
+
+        for zz in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
             for i in range(dia_per_side):
                 step = i+1
-                if entity_board[xby-step, xbx] == 0:
-                    fire_board[xby-step, xbx] = 10
-                if hp_board[xby-step, xbx] > 0:
-                    hp_board[xby-step, xbx] -= 1
-                    if hp_board[xby-step, xbx] == 0 and entity_board[xby-step, xbx] in [7,6]:
-                        fire_board[xby-step, xbx] = 10
-                        entity_board[xby-step, xbx] = 0
-                        break
-            
+                yy = xby+step*zz[0]
+                xx = xbx+step*zz[1]
+
+                # stop propagating when out of bounds
+                if (yy < 0 or xx < 0)  or (yy > board_shape[0]-1 or xx > board_shape[1]-1):
+                    break
+
+                # stop propagating if encoutered a metal block
+                if entity_board[yy, xx] == 5:
+                    break
                 
-            
-            # down
-            if entity_board[xby+step, xbx] == 0:
-                fire_board[xby+step, xbx] = 10
-            # left
-            if entity_board[xby, xbx-step] == 0:
-                fire_board[xby, xbx-step] = 10
-            # right
-            if entity_board[xby, xbx+step] == 0:
-                fire_board[xby, xbx+step] = 10
+                # continue if there is empty space
+                if entity_board[yy, xx] == 0:
+                    fire_board[yy, xx] = 10
 
+                if agent_hp_board[yy, xx] > 0:
+                    agent_hp_board[yy, xx] -= 1
+                    fire_board[yy, xx] = 10
+                    break
 
+                # stop if we hit something with hp and decrement hp
+                if hp_board[yy, xx] > 0:
+                    hp_board[yy, xx] -= 1
+                    if hp_board[yy, xx] == 0 and entity_board[yy, xx] in [7,6]:
+                        fire_board[yy, xx] = 10
+                        entity_board[yy, xx] = 0
+                        break
+                    else:
+                        break
+          
     return entity_board
 
