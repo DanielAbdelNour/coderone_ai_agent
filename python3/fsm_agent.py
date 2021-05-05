@@ -17,9 +17,6 @@ actions = ["up", "down", "left", "right", "bomb", "detonate"]
 
 class Agent():
     def __init__(self):
-        # compile jit funcs
-        fsm_utils.forward_entity_board(np.zeros(9,9), 'up', 0)  
-
         self._client = GameState(uri)
 
         self._client.set_game_tick_callback(self._on_game_tick)
@@ -43,11 +40,12 @@ class Agent():
 
     async def _on_game_tick(self, tick_number, game_state):
         game_state['tick'] = tick_number # force tick number to be correct
-        game_boards = fsm_utils.generate_board(game_state)
+        game_state_boards = fsm_utils.generate_board(deepcopy(game_state))
 
-        new_board = deepcopy(game_boards['entity_board'])
-        new_board = fsm_utils.forward_entity_board(new_board, 'up', 0)  
-        pprint(new_board)    
+        game_boards_stacked = np.stack([game_state_boards[v] for v in game_state_boards.keys()])
+
+        new_entity_board = fsm_utils.forward(game_boards_stacked, 'up', 0)  
+        pprint(new_entity_board)    
 
 
 

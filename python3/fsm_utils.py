@@ -39,9 +39,9 @@ def generate_board(game_state):
     convert a returned game_state to a lsit of 2D arrays
     '''
     entity_board = np.zeros((game_state['world']['height'], game_state['world']['width']))
-    bomb_exp_board = np.zeros_like(entity_board)
+    bomb_exp_board = np.zeros_like(entity_board) -1
     bomb_dia_board = np.zeros_like(entity_board)
-    fire_board = np.zeros_like(entity_board) 
+    fire_board = np.zeros_like(entity_board) -1
     hp_board = np.zeros_like(entity_board)
 
     tick = game_state['tick']
@@ -76,32 +76,27 @@ def generate_board(game_state):
     entity_board[(len(entity_board)-1) - agentB_y, agentB_x] = 11
 
     return {
-        'entity_board': entity_board.astype(int),
-        'hp_board': hp_board.astype(int),
-        'bomb_dia_board': bomb_dia_board.astype(int),
-        'bomb_exp_board': bomb_exp_board.astype(int),
-        'fire_board': fire_board.astype(int)
+        'entity_board': entity_board.astype(np.int32),
+        'hp_board': hp_board.astype(np.int32),
+        'bomb_dia_board': bomb_dia_board.astype(np.int32),
+        'bomb_exp_board': bomb_exp_board.astype(np.int32),
+        'fire_board': fire_board.astype(np.int32)
     }
 
 
+#@njit
+def forward(game_state_boards, action, agent_number):
+    '''
+    forward step all state boards
+    '''
 
-def forward(game_boards, action, agent_number):
-    '''
-    forward step all boards
-    '''
-    entity_board = deepcopy(game_boards['entity_board'])
-    if action in move_actions:
-        entity_board = forward_entity_board(game_boards['entity_board'], action, agent_number)
-    
-    if action in other_actions:
-        pass
+    # start with the entity board
+    entity_board = game_state_boards[0].copy()
+    hp_board = game_state_boards[1].copy()
+    bomb_dia_board = game_state_boards[2].copy()
+    bomb_exp_board = game_state_boards[3].copy()
+    fire_board = game_state_boards[4].copy()
 
-
-@njit
-def forward_entity_board(entity_board, action, agent_number):
-    '''
-    forward step entity board
-    '''
     agent_ent = 10 if agent_number == 0 else 11 #agent_number_ent_dict[agent_number]
 
     # apply forward for a movement
@@ -130,4 +125,45 @@ def forward_entity_board(entity_board, action, agent_number):
             entity_board[ny, nx] = agent_ent
             entity_board[cy, cx] = 0
 
+    # tick bombs
+    bomb_exp_board[bomb_exp_board > 0] -= 1
+    exploded_bombs = np.argwhere(bomb_exp_board == 0)
+
+    # add fire
+    for xb in exploded_bombs:
+        xby, xbx = xb
+        dia = bomb_dia_board[xby, xbx]
+        dia_per_side = dia-2
+
+        # place fire `dia_per_side` times each side from the center of the xplosion
+        # auto place fire if entity at fire location is wood(7)
+        # decrement health all other locations
+        fire_board[xby, xbx] = 10
+
+        for ss in [[xby-step, xbx], [xby+step, xbx], [xby, xbx-step], [xby, xbx+step]]:
+            for i in range(dia_per_side):
+                step = i+1
+                if entity_board[xby-step, xbx] == 0:
+                    fire_board[xby-step, xbx] = 10
+                if hp_board[xby-step, xbx] > 0:
+                    hp_board[xby-step, xbx] -= 1
+                    if hp_board[xby-step, xbx] == 0 and entity_board[xby-step, xbx] in [7,6]:
+                        fire_board[xby-step, xbx] = 10
+                        entity_board[xby-step, xbx] = 0
+                        break
+            
+                
+            
+            # down
+            if entity_board[xby+step, xbx] == 0:
+                fire_board[xby+step, xbx] = 10
+            # left
+            if entity_board[xby, xbx-step] == 0:
+                fire_board[xby, xbx-step] = 10
+            # right
+            if entity_board[xby, xbx+step] == 0:
+                fire_board[xby, xbx+step] = 10
+
+
     return entity_board
+
