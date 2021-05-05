@@ -128,16 +128,21 @@ def forward(game_state_boards, action, agent_number):
             return entity_board
 
         ent_at_position = entity_board[ny, nx]
-        # position is empty - can move - modify entity board to reflect new position
-        if ent_at_position == 0:
+        # position is empty or has a powerup - can move - modify entity board to reflect new position
+        if ent_at_position in [0, 4, 1]:
             entity_board[ny, nx] = agent_ent
             entity_board[cy, cx] = 0
+            # handle powerups
+            if ent_at_position in [4, 1]:
+                pass
+                # TODO update player power board and player ammo board
+
 
     # tick bombs
     bomb_exp_board[bomb_exp_board > 0] -= 1
     exploded_bombs = np.argwhere(bomb_exp_board == 0)
 
-    # add fire
+    # add fire to expired bombs
     for xb in exploded_bombs:
         xby, xbx = xb
         dia = bomb_dia_board[xby, xbx]
@@ -147,7 +152,6 @@ def forward(game_state_boards, action, agent_number):
         # auto place fire if entity at fire location is wood(7)
         # decrement health all other locations
         fire_board[xby, xbx] = 10
-
 
         for zz in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
             for i in range(dia_per_side):
@@ -167,6 +171,7 @@ def forward(game_state_boards, action, agent_number):
                 if entity_board[yy, xx] == 0:
                     fire_board[yy, xx] = 10
 
+                # damage agents
                 if agent_hp_board[yy, xx] > 0:
                     agent_hp_board[yy, xx] -= 1
                     fire_board[yy, xx] = 10
