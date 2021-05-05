@@ -92,7 +92,7 @@ class Agent:
         b = resolve_action('left', 1)
         fwd_actions = [a, b]
         self.async_next_state = asyncio.get_event_loop().create_future()
-        _, next_state = await asyncio.gather(self._client_fwd.send_next_state(100, prev_state, fwd_actions), self.async_next_state)
+        _, next_state = await asyncio.gather(self._client_fwd.send_next_state(0, prev_state, fwd_actions), self.async_next_state)
         print('-------------------------------------------------')
         pprint(next_state)
         print('-------------------------------------------------')
@@ -100,6 +100,7 @@ class Agent:
 
     async def _on_next_game_state(self, state):
         next_state = state["next_state"]
+        pprint(next_state['entities'])
         self.async_next_state.set_result(next_state)
         
 

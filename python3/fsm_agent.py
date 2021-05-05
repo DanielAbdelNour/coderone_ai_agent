@@ -2,6 +2,12 @@ from game_state import GameState
 import asyncio
 import random
 import os
+import fsm_utils
+from pprint import pprint
+import time
+from numba import njit, typeof, typed, types
+from copy import deepcopy
+import numpy as np
 
 uri = os.environ.get(
     'GAME_CONNECTION_STRING') or "ws://127.0.0.1:3000/?role=agent&agentId=agentId&name=defaultName"
@@ -11,6 +17,9 @@ actions = ["up", "down", "left", "right", "bomb", "detonate"]
 
 class Agent():
     def __init__(self):
+        # compile jit funcs
+        fsm_utils.forward_entity_board(np.zeros(9,9), 'up', 0)  
+
         self._client = GameState(uri)
 
         self._client.set_game_tick_callback(self._on_game_tick)
@@ -33,22 +42,40 @@ class Agent():
             return None
 
     async def _on_game_tick(self, tick_number, game_state):
-        random_action = self.generate_random_action()
-        if random_action in ["up", "left", "right", "down"]:
-            await self._client.send_move(random_action)
-        elif random_action == "bomb":
-            await self._client.send_bomb()
-        elif random_action == "detonate":
-            bomb_coordinates = self._get_bomb_to_detonate(game_state)
-            if bomb_coordinates != None:
-                x, y = bomb_coordinates
-                await self._client.send_detonate(x, y)
-        else:
-            print(f"Unhandled action: {random_action}")
+        game_state['tick'] = tick_number # force tick number to be correct
+        game_boards = fsm_utils.generate_board(game_state)
 
-    def generate_random_action(self):
-        actions_length = len(actions)
-        return actions[random.randint(0, actions_length - 1)]
+        new_board = deepcopy(game_boards['entity_board'])
+        new_board = fsm_utils.forward_entity_board(new_board, 'up', 0)  
+        pprint(new_board)    
+
+
+
+        # @njit
+        # def do_loop(new_board):
+        #     for i in range(1000000):
+        #         new_board = fsm_utils.forward_entity_board(new_board, 'up', 0)
+
+        # s = time.time()
+        # do_loop(new_board)
+        # print(time.time() - s)
+
+        
+    
+
+
+    async def send_action(self, action, bomb_coords=None):
+        '''
+        send an action to the server
+        '''
+        if action in ['left', 'right', 'up', 'down']:
+            await self._client.send_move(action)
+        elif action == 'bomb':
+            await self._client.send_bomb()
+        elif action == 'detonate' and bomb_coords != None:
+            await self._client.send_detonate(*bomb_coords)
+        else:
+            print(f"Unhandled action: {action}")
 
 
 def main():

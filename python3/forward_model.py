@@ -54,7 +54,6 @@ class ForwardModel:
             "agent_number": 1,
         }
     ]
-
     REMARKS:
     `sequence_id` is used to for you match up an evaluated
     next_state call since payloads can come back in any order
@@ -62,5 +61,6 @@ class ForwardModel:
     """
     async def send_next_state(self, sequence_id, game_state, actions):
         game_state.pop("connection", None)
-        packet = {"actions": actions, "type": "evaluate_next_state", "state": game_state, "sequence_id": sequence_id}
+        packet = {"actions": actions,
+                  "type": "evaluate_next_state", "state": game_state, "sequence_id": sequence_id}
         await self.connection.send(json.dumps(packet))
