@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# coderone_ai_agent
-=======
 # Documentation
 
 Find our documentation here: https://docs.gocoder.one/
@@ -12,4 +9,3 @@ Feel free to contribute by raising a `pull request` or [raising an issue](https:
 # Any questions?
 
 Reach out at [humans@gocoder.one](mailto:humans@gocoder.one) or find us on [Discord](https://discord.gg/NkfgvRN).
->>>>>>> d689251 (first commit)

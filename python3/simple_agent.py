@@ -63,7 +63,7 @@ class Agent():
             #return constants.Action.Bomb.value
 
         # Move towards an enemy if there is one in exactly three reachable spaces.
-        direction = self._near_enemy(my_position, items, dist, prev, enemies, 5) #TODO change back to 3
+        direction = self._near_enemy(my_position, items, dist, prev, enemies, 4) #TODO change back to 3
         if direction is not None and (self._prev_direction != direction or random.random() < .5):
             self._prev_direction = direction
             await self._client.send_move(direction.value)
@@ -71,14 +71,14 @@ class Agent():
             #return direction.value
 
         # Move towards a good item if there is one within two reachable spaces.
-        direction = self._near_good_powerup(my_position, items, dist, prev, 5) #TODO change back to 2
+        direction = self._near_good_powerup(my_position, items, dist, prev, 3) #TODO change back to 2
         if direction is not None:
             await self._client.send_move(direction.value)
             return
             #return direction.value
 
-        # Maybe lay a bomb if we are within a space of a wooden wall.
-        if self._near_wood(my_position, items, dist, prev, 1): #TODO change back to 1
+        # Maybe lay a bomb if we are within a space of a wooden wall. AND WE HAVE ENOUGH BOMBS
+        if self._near_wood(my_position, items, dist, prev, 1) and ammo > 2: #TODO change back to 1
             if self._maybe_bomb(ammo, blast_strength, items, dist, my_position):
                 await self._client.send_bomb()
                 return

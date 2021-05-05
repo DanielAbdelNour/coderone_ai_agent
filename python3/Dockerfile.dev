@@ -5,5 +5,5 @@ WORKDIR /app
 RUN python -m pip install -r requirements.txt
 RUN apk add g++ zeromq-dev
 RUN pip install numpy ipykernel
-CMD ["sleep", "infinity"]
-#ENTRYPOINT PYTHONUNBUFFERED=1 python simple_agent.py
+#CMD ["sleep", "infinity"]
+ENTRYPOINT PYTHONUNBUFFERED=1 python simple_agent.py
