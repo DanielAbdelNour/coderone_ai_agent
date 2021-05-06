@@ -2,6 +2,7 @@ from os import sched_yield
 import numpy as np
 from copy import deepcopy
 from numba import njit, typeof, typed, types
+from enum import Enum
 
 ent_type_dict = {
     'p':0,
@@ -108,35 +109,45 @@ def generate_board(game_state):
     }
 
 
-#@njit
+class Actions(Enum):
+    LEFT = 0
+    RIGHT = 1
+    UP = 2
+    DOWN = 3
+    BOMB = 4
+    DETONATE = 5
+
+
+@njit
 def forward(game_state_boards, actions):
     '''
     forward step all state boards actions[0] for agentA actions[1] for agentB
     '''
 
     # start with all boards
-    entity_board = game_state_boards[0].copy()
-    hp_board = game_state_boards[1].copy()
-    bomb_dia_board = game_state_boards[2].copy()
-    bomb_exp_board = game_state_boards[3].copy()
-    fire_board = game_state_boards[4].copy()
-    agent_hp_board = game_state_boards[5].copy()
-    agent_power_board = game_state_boards[6].copy()
-    agent_ammo_board = game_state_boards[7].copy()
-    agent_board = game_state_boards[8].copy()
-    bomb_owner_board = game_state_boards[9].copy()
+    entity_board = game_state_boards[0]#.copy()
+    hp_board = game_state_boards[1]#.copy()
+    bomb_dia_board = game_state_boards[2]#.copy()
+    bomb_exp_board = game_state_boards[3]#.copy()
+    fire_board = game_state_boards[4]#.copy()
+    agent_hp_board = game_state_boards[5]#.copy()
+    agent_power_board = game_state_boards[6]#.copy()
+    agent_ammo_board = game_state_boards[7]#.copy()
+    agent_board = game_state_boards[8]#.copy()
+    bomb_owner_board = game_state_boards[9]#.copy()
 
     board_shape = entity_board.shape
 
     # apply actions
     for agent_ent, action in [[10, actions[0]], [11, actions[1]]]:
-        cy,cx = np.argwhere(agent_board==agent_ent)[0] # current x, y of target agent
-        if action in ['left', 'right', 'up', 'down']: #move_actions:
-            if action == 'left':
+        # current x, y of target agent
+        cy,cx = np.argwhere(agent_board==agent_ent)[0] 
+        if action in [0,1,2,3]:#['left', 'right', 'up', 'down']:
+            if action == 0: #'left':
                 move_dir = (0,-1)
-            elif action == 'right':
+            elif action == 1: #'right':
                 move_dir = (0,1)
-            elif action == 'up':
+            elif action == 2: #'up':
                 move_dir = (-1,0)
             else:
                 move_dir = (1,0)
@@ -169,14 +180,14 @@ def forward(game_state_boards, actions):
                         agent_ammo_board[ny, nx] = agent_ammo_board[ny, nx] + 1
 
         # place bombs if agent has enough ammo and not standing an another bomb
-        if action == 'bomb' and agent_ammo_board[cy, cx] > 0 and entity_board[cx, cy] != 2:
+        if action == 4 and agent_ammo_board[cy, cx] > 0 and entity_board[cx, cy] != 2:
             entity_board[cy, cx] = 2 # add bomb to position
             bomb_exp_board[cy, cx] = 40
             agent_ammo_board[cy, cx] -= 1
             bomb_dia_board[cy, cx] = agent_power_board[cy, cx]
             bomb_owner_board[cy, cx] = agent_ent
         
-        if action == 'detonate':
+        if action == 5:
             # find all bombs belonging to agent
             to_detonate = np.argwhere(bomb_owner_board == agent_ent)
             for td in to_detonate:
@@ -185,11 +196,19 @@ def forward(game_state_boards, actions):
 
 
     # TODO convert to funtion to enable bomb chaining
-    
     # tick bombs
-    bomb_exp_board[bomb_exp_board >= 0] -= 1
+    bomb_locations = np.argwhere(bomb_exp_board >= 0)
+    for bl in bomb_locations:
+        bly, blx = bl
+        bomb_exp_board[bly, blx] -= 1
+    #bomb_exp_board[bomb_exp_board >= 0] -= 1
+
     # tick fire
-    fire_board[fire_board >= 0] -= 1
+    fire_locations = np.argwhere(fire_board >= 0)
+    for fl in fire_locations:
+        fly, flx = fl
+        fire_board[fly, flx] -= 1
+    #fire_board[fire_board >= 0] -= 1
 
     # find exploded bombs
     exploded_bombs = np.argwhere(bomb_exp_board == 0)
@@ -256,5 +275,5 @@ def forward(game_state_boards, actions):
             agent_hp_board[afy, afx] -= 1
 
 
-    return np.stack([entity_board, hp_board, bomb_dia_board,  bomb_exp_board, fire_board, agent_hp_board, agent_power_board, agent_ammo_board, agent_board, bomb_owner_board])
+    return np.stack((entity_board, hp_board, bomb_dia_board,  bomb_exp_board, fire_board, agent_hp_board, agent_power_board, agent_ammo_board, agent_board, bomb_owner_board))
 

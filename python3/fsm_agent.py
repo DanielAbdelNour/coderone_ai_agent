@@ -19,6 +19,13 @@ class Agent():
     def __init__(self):
         self._client = GameState(uri)
 
+        print('compiling board states')
+        init_board = np.zeros((9,9,9)).astype(np.int32)
+        init_board[0][5,5] = 10
+        init_board[0][6,6] = 11
+        fsm_utils.forward(init_board, np.array([fsm_utils.Actions.LEFT.value, fsm_utils.Actions.RIGHT.value])) 
+        print('compiled on test board')
+
         self._client.set_game_tick_callback(self._on_game_tick)
         loop = asyncio.get_event_loop()
         connection = loop.run_until_complete(self._client.connect())
@@ -46,24 +53,28 @@ class Agent():
 
         #await self.send_action('bomb') 
         new_game_boards_stacked = game_boards_stacked.copy()
-        new_game_boards_stacked = fsm_utils.forward(new_game_boards_stacked, ['detonate', 'detonate'])  
-        pprint(new_game_boards_stacked[0] + new_game_boards_stacked[8])  
+        new_game_boards_stacked = fsm_utils.forward(new_game_boards_stacked, np.array([fsm_utils.Actions.RIGHT.value, fsm_utils.Actions.RIGHT.value])) 
+        # pprint(new_game_boards_stacked[0] + new_game_boards_stacked[8])  
+        # print('bomb timsers')
+        # pprint(new_game_boards_stacked[3])
+        # print('agent hp')
+        # pprint(new_game_boards_stacked[5])
 
 
+        # t1 = time.time()
+        # for i in range(100000):
+        #     fsm_utils.forward(new_game_boards_stacked, np.array([fsm_utils.Actions.BOMB.value, fsm_utils.Actions.RIGHT.value])) 
+        # print(time.time() - t1)
 
 
         # @njit
         # def do_loop(new_board):
-        #     for i in range(1000000):
-        #         new_board = fsm_utils.forward_entity_board(new_board, 'up', 0)
+        #     for i in np.arange(100000):
+        #         fsm_utils.forward(new_board, np.array([fsm_utils.Actions.LEFT.value, fsm_utils.Actions.RIGHT.value])) 
 
         # s = time.time()
-        # do_loop(new_board)
+        # do_loop(new_game_boards_stacked)
         # print(time.time() - s)
-
-        
-    
-
 
     async def send_action(self, action, bomb_coords=None):
         '''
