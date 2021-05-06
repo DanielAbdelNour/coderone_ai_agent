@@ -44,8 +44,11 @@ class Agent():
 
         game_boards_stacked = np.stack([game_state_boards[v] for v in game_state_boards.keys()])
 
-        new_entity_board = fsm_utils.forward(game_boards_stacked, 'up', 0)  
-        pprint(new_entity_board)    
+        #await self.send_action('bomb') 
+        new_game_boards_stacked = game_boards_stacked.copy()
+        new_game_boards_stacked = fsm_utils.forward(new_game_boards_stacked, ['detonate', 'detonate'])  
+        pprint(new_game_boards_stacked[0] + new_game_boards_stacked[8])  
+
 
 
 
